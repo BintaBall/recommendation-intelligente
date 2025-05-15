@@ -1,4 +1,3 @@
-```markdown
 # Plateforme Intelligente de Recommandation d'Articles Scientifiques
 
 ## Projet éducatif - Polytechnique Sousse
@@ -351,4 +350,3 @@ Ce projet a été développé dans le cadre d'une formation en génie logiciel p
 - La conteneurisation avec Docker
 - L'orchestration de services avec Docker Compose
 
----
