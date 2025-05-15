@@ -342,7 +342,7 @@ recommendation-intelligente/
 
 ## Objectifs Pédagogiques
 
-Ce projet a été développé dans le cadre d'une formation en génie logiciel pour démontrer:
+Ce projet a été développé dans le cadre d'une formation en data science pour démontrer:
 
 - Les patterns d'architecture microservices
 - L'utilisation de différents protocoles de communication
