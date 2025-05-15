@@ -1,0 +1,108 @@
+syntax = "proto3";
+
+package article;
+
+service ArticleService {
+  rpc GetArticle(ArticleRequest) returns (ArticleResponse);
+  
+  rpc SearchArticles(SearchRequest) returns (SearchResponse);
+
+  rpc ListArticles(ListRequest) returns (ListResponse);
+  
+  rpc CreateArticle(CreateArticleRequest) returns (ArticleResponse);
+  
+  rpc GetSimilarArticles(SimilarArticlesRequest) returns (SearchResponse);
+  
+  rpc GetArticlesByDomain(DomainRequest) returns (SearchResponse);
+  
+
+  rpc GetArticlesByKeywords(KeywordsRequest) returns (SearchResponse);
+
+  rpc AnalyzeArticleContent(ArticleRequest) returns (AnalysisResponse);
+}
+
+//Request messages
+message ArticleRequest {
+  string id = 1;
+}
+
+message SearchRequest {
+  string query = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  string sort_by = 3;
+  bool descending = 4;
+}
+
+message CreateArticleRequest {
+  string title = 1;
+  string abstract = 2;
+  repeated string authors = 3;
+  string domain = 4;
+  repeated string keywords = 5;
+  string publication_date = 6;
+  string content = 7;
+  string url = 8;
+}
+
+message SimilarArticlesRequest {
+  string id = 1;
+  int32 limit = 2;
+}
+
+message DomainRequest {
+  string domain = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message KeywordsRequest {
+  repeated string keywords = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+//Response messages
+message ArticleResponse {
+  string id = 1;
+  string title = 2;
+  string abstract = 3;
+  repeated string authors = 4;
+  string domain = 5;
+  repeated string keywords = 6;
+  string publication_date = 7;
+  string content = 8;
+  string url = 9;
+  string created_at = 10;
+  string updated_at = 11;
+}
+
+message SearchResponse {
+  repeated ArticleResponse articles = 1;
+  int32 total_count = 2;
+}
+
+message ListResponse {
+  repeated ArticleResponse articles = 1;
+  int32 total_count = 2;
+}
+
+message AnalysisResponse {
+  string id = 1;
+  repeated string extracted_keywords = 2;
+  repeated EntityInfo entities = 3;
+  map<string, float> term_frequencies = 4;
+  repeated string related_domains = 5;
+  float readability_score = 6;
+}
+
+message EntityInfo {
+  string name = 1;
+  string type = 2;
+  float relevance = 3;
+}

@@ -1,0 +1,223 @@
+Ce projet est une architecture de microservices pour recommander des articles scientifiques aux utilisateurs selon leurs préférences. Voici une explication détaillée de chaque composant et des technologies utilisées :
+
+## Vue d'Ensemble
+
+L'application permet aux utilisateurs de découvrir des articles scientifiques correspondant à leurs intérêts. Le système analyse le comportement des utilisateurs et utilise ces données pour affiner ses recommandations au fil du temps.
+
+## Microservices et Technologies
+
+### 1. Service Utilisateur (REST API)
+- **Technologie**: REST API avec Node.js/Express
+- **Rôle**: Gestion des profils utilisateurs, authentification, préférences
+- **Pourquoi REST**: Interface simple et standardisée pour les opérations CRUD d'utilisateurs
+
+
+REST est choisi ici car les opérations sur les utilisateurs sont simples et suivent naturellement le modèle CRUD (Create, Read, Update, Delete) que REST gère parfaitement.
+
+### 2. Service Article (gRPC)
+- **Technologie**: gRPC avec Node.js
+- **Rôle**: Stockage, indexation et analyse des articles scientifiques
+- **Pourquoi gRPC**: Transfert de données efficace et rapide entre services internes
+
+
+gRPC est utilisé pour les communications inter-services nécessitant des performances élevées. Ce service doit potentiellement transférer de grandes quantités de données d'articles entre services, et gRPC avec son format Protocol Buffers offre une sérialisation plus efficace que JSON.
+
+### 3. Service Recommandation (GraphQL)
+- **Technologie**: GraphQL avec Apollo Server
+- **Rôle**: Calcul des recommandations d'articles personnalisées
+- **Pourquoi GraphQL**: Flexibilité des requêtes pour obtenir exactement les données nécessaires
+
+GraphQL est idéal ici car les clients peuvent demander précisément les informations dont ils ont besoin sur les articles recommandés (titre uniquement, ou titre + résumé, etc.) sans avoir à créer plusieurs endpoints REST.
+
+### 4. Service Événement (Kafka)
+- **Technologie**: Kafka avec Node.js
+- **Rôle**: Traitement des événements utilisateurs (clics, lectures, etc.)
+- **Pourquoi Kafka**: Architecture événementielle asynchrone, haute performance
+
+
+Kafka permet une architecture orientée événements où les actions des utilisateurs sont capturées sous forme de messages, qui peuvent être consommés par différents services. Cela offre découplage et scalabilité.
+
+### 5. API Gateway
+- **Technologie**: Node.js/Express combinant REST et GraphQL
+- **Rôle**: Point d'entrée unique pour les clients, routage des requêtes
+
+
+L'API Gateway fédère les différentes APIs en un point d'entrée unique, simplifiant l'accès depuis les applications clientes.
+
+## Flux de Données et Communication
+
+1. **Communication Synchrone**:
+   - L'API Gateway ↔ Service Utilisateur: REST
+   - L'API Gateway ↔ Service Recommandation: GraphQL
+   - Service Recommandation ↔ Service Article: gRPC
+
+2. **Communication Asynchrone**:
+   - Client → Service Événement → Kafka → Autres Services
+
+## Base de Données
+
+- **MongoDB*: Base de données NoSQL flexible, idéale pour les documents hétérogènes comme les articles scientifiques
+
+## Exemple de Flux Utilisateur
+
+1. Un utilisateur se connecte via l'API Gateway (requête REST)
+3. L'utilisateur demande des recommandations via l'API Gateway
+4. L'API Gateway transmet la demande au Service Recommandation (GraphQL)
+5. Le Service Recommandation récupère les informations utilisateur auprès du Service Utilisateur (REST)
+6. Le Service Recommandation demande les articles disponibles au Service Article (gRPC)
+7. Le Service Recommandation calcule les recommandations
+8. Les résultats sont renvoyés à l'utilisateur
+9. Chaque interaction utilisateur est envoyée comme événement à Kafka via le Service Événement
+10. Ces événements sont consommés pour améliorer les recommandations futures
+
+Cette architecture combine les avantages de différents styles d'API pour optimiser chaque aspect du système tout en maintenant une cohérence globale.
+
+
+
+## 1. Créer un Utilisateur
+
+### Requête
+- **Méthode**: POST
+- **URL**: `http://localhost:4001/api/users`
+- **Headers**: 
+  - Content-Type: application/json
+- **Body** (raw JSON):
+
+```json
+{
+  "username": "johnsmith",
+  "email": "john.smith@example.com",
+  "password": "password123",
+  "interests": ["Physics", "Computer Science", "Quantum Computing"],
+  "profile": {
+    "firstName": "John",
+    "lastName": "Smith",
+    "bio": "Researcher in quantum computing and artificial intelligence",
+    "institution": "Tech University"
+  }
+}
+```
+
+### Réponse Attendue
+
+```json
+{
+  "message": "Utilisateur créé avec succès",
+  "user": {
+    "_id": "6157a8f2b9e5a23d4c8a1b7c",
+    "username": "johnsmith",
+    "email": "john.smith@example.com",
+    "interests": ["Physics", "Computer Science", "Quantum Computing"],
+    "profile": {
+      "firstName": "John",
+      "lastName": "Smith",
+      "bio": "Researcher in quantum computing and artificial intelligence",
+      "institution": "Tech University"
+    },
+    "createdAt": "2025-05-15T18:30:42.123Z",
+    "updatedAt": "2025-05-15T18:30:42.123Z"
+  },
+  "token": "fake-token-for-development"
+}
+```
+
+**Important**: Notez l'ID utilisateur (`_id`) pour l'étape de recommandation.
+
+## 2. Créer un Article
+
+Si vous n'avez pas encore exécuté le script seed.js pour peupler la base de données avec des articles, vous pouvez créer manuellement un article.
+
+### Requête
+- **Méthode**: POST
+- **URL**: `http://localhost:4000/api/articles` (via l'API Gateway) ou `http://localhost:5000/api/articles` (directement)
+- **Headers**: 
+  - Content-Type: application/json
+- **Body** (raw JSON):
+
+```json
+{
+  "title": "Recent Advancements in Quantum Computing Algorithms",
+  "abstract": "This paper explores recent breakthroughs in quantum algorithms with applications in cryptography and machine learning.",
+  "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam auctor, nisl ac ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl. Nullam auctor, nisl ac ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl.",
+  "domain": "Computer Science",
+  "authors": ["Alice Johnson", "Bob Williams"],
+  "keywords": ["quantum computing", "algorithms", "cryptography"],
+  "publicationDate": "2025-03-15T00:00:00.000Z"
+}
+```
+
+### Réponse Attendue
+
+```json
+{
+  "id": "6157a9b5b9e5a23d4c8a1b7d",
+  "title": "Recent Advancements in Quantum Computing Algorithms",
+  "abstract": "This paper explores recent breakthroughs in quantum algorithms with applications in cryptography and machine learning.",
+  "domain": "Computer Science",
+  "authors": ["Alice Johnson", "Bob Williams"]
+}
+```
+
+## 3. Seed de plusieurs articles (Recommandé)
+
+Pour tester la recommandation efficacement, il est préférable d'avoir plusieurs articles. Exécutez plutôt:
+
+```bash
+docker exec -it article-service-1 node src/seed.js
+```
+
+## 4. Obtenir des Recommandations d'Articles
+
+### Requête
+- **Méthode**: POST
+- **URL**: `http://localhost:4003/graphql`
+- **Headers**: 
+  - Content-Type: application/json
+- **Body** (raw JSON):
+
+```json
+{
+  "query": "{ recommendedArticles(userId: \"6157a8f2b9e5a23d4c8a1b7c\") { id title domain abstract authors } }"
+}
+```
+
+Remplacez `6157a8f2b9e5a23d4c8a1b7c` par l'ID utilisateur que vous avez obtenu à l'étape 1.
+
+### Réponse Attendue
+
+```json
+{
+  "data": {
+    "recommendedArticles": [
+      {
+        "id": "6157a9b5b9e5a23d4c8a1b7d",
+        "title": "Recent Advancements in Quantum Computing Algorithms",
+        "domain": "Computer Science",
+        "abstract": "This paper explores recent breakthroughs in quantum algorithms with applications in cryptography and machine learning.",
+        "authors": ["Alice Johnson", "Bob Williams"]
+      },
+      {
+        "id": "6157a9c3b9e5a23d4c8a1b7e",
+        "title": "Quantum Computing: Beyond NISQ Era Devices",
+        "domain": "Physics",
+        "abstract": "This research presents potential architectures for fault-tolerant quantum computers that can scale beyond current noisy intermediate-scale quantum devices.",
+        "authors": ["Quantum Zhang", "Qubit Johnson"]
+      }
+      // Autres articles recommandés basés sur les intérêts "Physics" et "Computer Science"
+    ]
+  }
+}
+```
+
+## 5. Créer une Collection Postman
+
+Pour faciliter les tests:
+
+1. Créez une collection "Scientific Articles Platform"
+2. Ajoutez trois dossiers: "Users", "Articles" et "Recommendations"
+3. Sauvegardez ces requêtes dans leurs dossiers respectifs
+4. Créez des variables d'environnement:
+   - `baseUrl`: `http://localhost:4000`
+   - `userServiceUrl`: `http://localhost:4001`
+   - `recommendationServiceUrl`: `http://localhost:4003`
+   - `userId`: (remplissez avec l'ID obtenu après création d'utilisateur)

@@ -1,0 +1,124 @@
+version: '3'
+
+services:
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "4000:4000"
+    depends_on:
+      - user-service
+      - article-service
+      - recommendation-service
+    environment:
+      - USER_SERVICE_URL=http://user-service:4001
+      - ARTICLE_SERVICE_URL=article-service:5000
+      - RECOMMENDATION_SERVICE_URL=http://recommendation-service:4003
+      - NODE_ENV=development
+      - SKIP_AUTH=true
+    networks:
+      - app-network
+
+  # User Service (REST)
+  user-service:
+    build: ./user-service
+    ports:
+      - "4001:4001"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/articles-platform
+      - KAFKA_BROKERS=kafka:9080
+      - JWT_SECRET=your_jwt_secret_key
+      - NODE_ENV=development
+      - SKIP_AUTH=true
+    networks:
+      - app-network
+
+  # Article Service (gRPC)
+  article-service:
+    build: ./article-service
+    ports:
+      - "5000:5000"
+    depends_on:
+      - mongodb
+      - kafka
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/articles-platform
+      - KAFKA_BROKERS=kafka:9080
+      - NODE_ENV=development
+    networks:
+      - app-network
+
+  # Recommendation Service (GraphQL)
+  recommendation-service:
+    build: ./recommendation-service
+    ports:
+      - "4003:4003"
+    depends_on:
+      - mongodb
+      - kafka
+      - article-service
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/articles-platform
+      - KAFKA_BROKERS=kafka:9080
+      - ARTICLE_SERVICE_URL=article-service:5000
+      - NODE_ENV=development
+    networks:
+      - app-network
+
+  # Event Service (Kafka Producer/Consumer)
+  event-service:
+    build: ./event-service
+    ports:
+      - "4002:4002" 
+    depends_on:
+      - kafka
+      - mongodb
+    environment:
+      - KAFKA_BROKERS=kafka:9080  
+      - MONGO_URI=mongodb://mongodb:27017/articles-platform
+      - PORT=4002  
+      - NODE_ENV=development
+    networks:
+      - app-network
+
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  # Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - app-network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9080:9080"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9080
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - app-network
+
+volumes:
+  mongo-data:
+
+networks:
+  app-network:
+    driver: bridge

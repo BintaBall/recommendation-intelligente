@@ -1,0 +1,17 @@
+{
+  "name": "recommendation-service",
+  "version": "1.0.0",
+  "description": "GraphQL microservice for article recommendations",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "apollo-server": "^3.10.0",
+    "graphql": "^16.0.0",
+    "mongoose": "^6.0.12"
+  },
+  "author": "",
+  "license": "ISC"
+}
